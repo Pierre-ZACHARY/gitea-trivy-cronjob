@@ -1,0 +1,1 @@
+module gitea-trivy-cronjob
