@@ -17,5 +17,5 @@ COPY --from=builder /app/main /usr/local/bin/giteatrivybot
 
 WORKDIR /app
 
-ENTRYPOINT ["/bin/sh"]
+ENTRYPOINT ["giteatrivybot"]
 
