@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: trivy-gitea-secret
+data:
+  token: <your-bot-access-token>
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: trivy-bot
+spec:
+  schedule: '@hourly'
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - image: ghcr.io/pierre-zachary/gitea-trivy-cronjob:latest
+              name: trivy-bot
+              env:
+                - name: DRY_RUN
+                  value: false
+                - name: ENTRYPOINT_URL
+                  value: https://<yourgiteainstance>.com/
+                - name: GITEA_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: trivy-gitea-secret
+                      key: token
