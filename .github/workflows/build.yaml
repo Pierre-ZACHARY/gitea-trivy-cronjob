@@ -31,15 +31,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: set lower case owner name
+      - name: Lowercase GITHUB_REPOSITORY
+        id: lowercase
         run: |
-          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
-        env:
-          OWNER: '${{ github.repository_owner }}'
+          lowercased="${GITHUB_REPOSITORY,,}"
+          echo "::set-output name=lowercased::$lowercased"
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           context: .
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/${ OWNER_LC }:latest
+          tags: ghcr.io/${{ steps.lowercase.outputs.lowercased }}:latest
