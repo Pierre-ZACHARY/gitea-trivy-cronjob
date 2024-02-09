@@ -88,7 +88,11 @@ func linePrefix(isFirst, isLast bool) string {
 }
 
 func makeAPIRequest(url string) []byte {
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+
+	if err != nil {
+		log.Fatalf("Error creating http request : %s %s", url, err)
+	}
 
 	acceptHeaders := map[string][]string{
 		"Accept": {"application/json"},

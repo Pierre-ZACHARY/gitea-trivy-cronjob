@@ -6,12 +6,14 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
 var entryPointURL string
 var authToken string
 var dryRun bool
+var patchedIssues []int
 
 const configFile string = "trivy.json"
 
@@ -46,6 +48,9 @@ func main() {
 
 	responseData := makeAPIRequest(userReposEndpoint)
 
+	currentUser := getCurrentUser()
+	fmt.Println("Current username:", currentUser.Login)
+
 	var repositories []Repository
 	err := json.Unmarshal(responseData, &repositories)
 	if err != nil {
@@ -59,11 +64,12 @@ func main() {
 
 	// Iterate through all repositories and print their owners and names.
 	for _, repo := range repositories {
-		//defaultBranch := repo.DefaultBranch
+
+		// check all repo issues from current user ( we might need to re-open them or close them )
+		issues := getRepoIssue(repo.Owner.Login, repo.Name, currentUser.Login)
+		fmt.Println(issues)
 		var branches []string
 		severityKey := "HIGH,CRITICAL"
-		//
-		//targetPath := filepath.Join(currentDir, repo.Name)
 
 		fmt.Println("Current repo : " + repo.CloneURL)
 		gitCloneOrUpdateUnderCurrentRepository(repo.CloneURL, repo.Name)
@@ -112,17 +118,29 @@ func main() {
 				fmt.Println("Encountered an error while running Trivy CONFIG scan:", err)
 			}
 
-			err = processTrivyResult(repo.Owner.Login, repo.Name, branch, filepath.Join(outputDir, "fs.json"), currentHash)
+			err = processTrivyResult(repo.Owner.Login, repo.Name, branch, filepath.Join(outputDir, "fs.json"), currentHash, issues)
 			if err != nil {
 				fmt.Println("Failed to process fs.json", "branch:"+branch, err)
 			}
 
-			err = processTrivyResult(repo.Owner.Login, repo.Name, branch, filepath.Join(outputDir, "config.json"), currentHash)
+			err = processTrivyResult(repo.Owner.Login, repo.Name, branch, filepath.Join(outputDir, "config.json"), currentHash, issues)
 			if err != nil {
 				fmt.Println("Failed to process config.json", "branch:"+branch, err)
 			}
 		}
 		navigate(currentDir)
+
+		// next we need to close all existing issues that weren't patched ( meaning there is no issue anymore )
+		for _, issue := range issues {
+			if !issue.Locked && issue.State != "closed" {
+				if !slices.Contains(patchedIssues, issue.ID) {
+					err := patchIssue(repo.Owner.Login, repo.Name, issue.ID, "closed", issue.Body)
+					if err != nil {
+						fmt.Println("Failed to close an issue :", issue.Title, issue.URL, err)
+					}
+				}
+			}
+		}
 
 		// remove the repo directory to gain space
 		err = os.RemoveAll(currentDir + "/" + repo.Name)
