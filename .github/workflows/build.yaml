@@ -31,10 +31,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: lowercase_repo
+        run: echo ::set-output name=lowercased::"${{ toLower(${{ env.GITHUB_REPOSITORY }})} }}"
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           context: .
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ghcr.io/${{ github.repository,, }}:latest
+          tags: ghcr.io/${{ steps.lowercase_repo.outputs.lowercased }}:latest
