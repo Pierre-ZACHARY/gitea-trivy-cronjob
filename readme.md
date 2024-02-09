@@ -1,4 +1,4 @@
-This repo contains a Go script that should run in a trivy container to scan all repos of your gitea instance which the user has access.
+This repo contains a Go script that run in a trivy container to scan all repos of your remote gitea instance which the bot has access.
 
 You should still run trivy as part of your CI before pushing a new image into your registry, but this bot allows for regular scans of all repos in case a new vulnerability is detected, just like a renovate bot.
 
